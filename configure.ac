@@ -6,8 +6,14 @@ AC_INIT(rmfd, 0.1)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/rm.c])
 
+AC_CONFIG_HEADERS([lib/config.h])
+
 # Checks for programs.
 AC_PROG_CC
+gl_EARLY
+gl_INIT
+
+AC_PROG_RANLIB
 
 # Checks for header files.
 # AC_HEADER_STDC
@@ -24,5 +30,6 @@ AC_PROG_CC
 # AC_CHECK_FUNCS([atexit memmove memset modf sqrt strchr strerror strrchr strtoul])
 
 AC_CONFIG_FILES([Makefile
+                 lib/Makefile
                  src/Makefile])
 AC_OUTPUT
