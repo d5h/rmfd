@@ -33,7 +33,7 @@ write-any-file
 yesno
 '
 
-./gnulib/gnulib-tool --import $GNULIB_MODULES &&
+./gnulib/gnulib-tool --import --lib=librmfd $GNULIB_MODULES &&
 aclocal --force -I m4 &&
 autoconf --force &&
 autoheader --force &&
