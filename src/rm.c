@@ -18,7 +18,8 @@
    Reworked to use chdir and avoid recursion, and later, rewritten
    once again, to use fts, by Jim Meyering.  */
 
-#include <config.h>
+#include "config.h"
+
 #include <stdio.h>
 #include <getopt.h>
 #include <sys/types.h>
