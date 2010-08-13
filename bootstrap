@@ -11,8 +11,10 @@ GNULIB_MODULES='
 argmatch
 closein
 closeout
+dev-ino
 dirname
 error
+file-type
 inttostr
 openat
 pathmax
@@ -26,6 +28,7 @@ stat-macros
 timespec
 unlocked-io
 version-etc
+write-any-file
 yesno
 '
 

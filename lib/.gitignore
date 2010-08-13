@@ -201,3 +201,10 @@
 /xstriconv.h
 /xstrndup.c
 /xstrndup.h
+/anytostr.c
+/imaxtostr.c
+/inttostr.c
+/inttostr.h
+/offtostr.c
+/uinttostr.c
+/umaxtostr.c
