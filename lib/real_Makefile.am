@@ -1,0 +1,9 @@
+include gnulib.mk
+
+librmfd_a_SOURCES += \
+	euidaccess-stat.c \
+	euidaccess-stat.h \
+	root-dev-ino.c \
+	root-dev-ino.h \
+	xfts.c \
+	xfts.h

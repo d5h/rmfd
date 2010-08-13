@@ -1,4 +1,5 @@
 *~
+*.a
 *.o
 Makefile
 Makefile.in
