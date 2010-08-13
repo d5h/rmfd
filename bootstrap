@@ -2,7 +2,33 @@
 
 # TODO: download gnulib if we don't have it.
 
-./gnulib/gnulib-tool --import argmatch error priv-set quotearg quote yesno &&
+# NOTE: This includes way more than is probably necessary just to build
+# rm; much of it is included through system.h.  As I'd prefer for this not
+# to be a permanent fork, I'd rather have a slightly bloated build than to
+# go editing files I don't need to.  I don't think this will make rm any
+# bigger.
+GNULIB_MODULES='
+argmatch
+closein
+closeout
+dirname
+error
+openat
+pathmax
+priv-set
+progname
+propername
+quotearg
+quote
+same-inode
+stat-macros
+timespec
+unlocked-io
+version-etc
+yesno
+'
+
+./gnulib/gnulib-tool --import $GNULIB_MODULES &&
 aclocal --force -I m4 &&
 autoconf --force &&
 autoheader --force &&
