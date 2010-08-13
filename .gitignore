@@ -12,6 +12,12 @@ install-sh
 config.h.in
 m4/
 missing
+config.log
+config.status
+lib/.deps/
+lib/config.h
+lib/stamp-h1
+src/.deps/
 /INSTALL
 /arg-nonnull.h
 /c++defs.h
