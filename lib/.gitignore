@@ -249,3 +249,4 @@
 /getgroups.c
 /group-member.c
 /group-member.h
+/version-etc-fsf.c

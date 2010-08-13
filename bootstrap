@@ -33,7 +33,7 @@ same-inode
 stat-macros
 timespec
 unlocked-io
-version-etc
+version-etc-fsf
 write-any-file
 yesno
 '
