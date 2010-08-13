@@ -15,6 +15,7 @@ dev-ino
 dirname
 error
 file-type
+fts
 inttostr
 openat
 pathmax

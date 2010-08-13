@@ -208,3 +208,8 @@
 /offtostr.c
 /uinttostr.c
 /umaxtostr.c
+/dev-ino.h
+/file-type.c
+/file-type.h
+/write-any-file.c
+/write-any-file.h
