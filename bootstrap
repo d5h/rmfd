@@ -13,6 +13,7 @@ closein
 closeout
 dirname
 error
+inttostr
 openat
 pathmax
 priv-set
