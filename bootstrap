@@ -24,6 +24,7 @@ group-member
 inttostr
 openat
 pathmax
+perl
 priv-set
 progname
 propername
