@@ -1,3 +1,5 @@
+.deps/
+/config.h.in
 /Makefile.am
 /alloca.in.h
 /alloca.h
