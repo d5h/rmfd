@@ -33,12 +33,17 @@ same-inode
 stat-macros
 timespec
 unlocked-io
+vc-list-files
 version-etc-fsf
 write-any-file
 yesno
 '
 
-./gnulib/gnulib-tool --import --lib=librmfd $GNULIB_MODULES || die
+./gnulib/gnulib-tool \
+    --import \
+    --aux-dir=build-aux \
+    --lib=librmfd \
+    $GNULIB_MODULES || die
 
 {
     mv lib/Makefile.am lib/gnulib.mk &&

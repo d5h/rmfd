@@ -1,3 +1,9 @@
+
 bin_PROGRAMS = rm
-rm_SOURCES = remove.c remove.h rm.c system.h version.c version.h
+
+rm_SOURCES = remove.c rm.c
 rm_LDADD = ../lib/librmfd.a $(LIBINTL)
+
+noinst_HEADERS = \
+	remove.h \
+	system.h

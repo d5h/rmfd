@@ -26,3 +26,4 @@ src/.deps/
 /c++defs.h
 /warn-on-use.h
 /config.rpath
+/vc-list-files
