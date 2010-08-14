@@ -48,7 +48,8 @@ this_test=$(this_test_)
 # a partition, or to undo any other global state changes.
 cleanup_() { :; }
 
-t_=$("$abs_top_builddir/src/mktemp" -d --tmp="$test_dir_" cu-$this_test.XXXXXXXXXX)\
+export TMPDIR="$test_dir_"
+t_=$(mktemp -d -t cu-$this_test.XXXXXXXXXX) \
     || error_ "failed to create temporary directory in $test_dir_"
 
 remove_tmp_()
