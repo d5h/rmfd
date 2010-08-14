@@ -1,5 +1,7 @@
 .deps/
 /config.h.in
+/config.h
+/stamp-h1
 /Makefile.am
 /alloca.in.h
 /alloca.h

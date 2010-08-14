@@ -3,10 +3,12 @@
 
 AC_PREREQ(2.59)
 AC_INIT(rmfd, 0.1)
-AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/rm.c])
 
+AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([lib/config.h])
+
+AM_INIT_AUTOMAKE([1.11.1 dist-xz color-tests parallel-tests])
 
 # Checks for programs.
 AC_PROG_CC
