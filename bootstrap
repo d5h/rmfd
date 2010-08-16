@@ -21,6 +21,7 @@ error
 file-type
 fts
 group-member
+hash
 inttostr
 openat
 pathmax
@@ -37,6 +38,7 @@ unlocked-io
 vc-list-files
 version-etc-fsf
 write-any-file
+xconcat-filename
 yesno
 '
 

@@ -254,3 +254,8 @@
 /group-member.c
 /group-member.h
 /version-etc-fsf.c
+/concat-filename.c
+/concat-filename.h
+/filename.h
+/stpcpy.c
+/xconcat-filename.c

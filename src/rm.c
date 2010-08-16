@@ -27,6 +27,7 @@
 
 #include "system.h"
 #include "argmatch.h"
+#include "concat-filename.h"
 #include "error.h"
 #include "quote.h"
 #include "quotearg.h"
@@ -36,13 +37,14 @@
 #include "priv-set.h"
 
 /* The official name of this program (e.g., no `g' prefix).  */
-#define PROGRAM_NAME "rm"
+#define PROGRAM_NAME "rmfd"
 
 #define AUTHORS \
   proper_name ("Paul Rubin"), \
   proper_name ("David MacKenzie"), \
   proper_name ("Richard M. Stallman"), \
-  proper_name ("Jim Meyering")
+  proper_name ("Jim Meyering"), \
+  proper_name ("Dan Hipschman")
 
 /* For long options that have no equivalent short option, use a
    non-character as a pseudo short option, starting with CHAR_MAX + 1.  */
@@ -52,7 +54,8 @@ enum
   ONE_FILE_SYSTEM,
   NO_PRESERVE_ROOT,
   PRESERVE_ROOT,
-  PRESUME_INPUT_TTY_OPTION
+  PRESUME_INPUT_TTY_OPTION,
+  WARNINGS
 };
 
 enum interactive_type
@@ -80,6 +83,7 @@ static struct option const long_opts[] =
 
   {"recursive", no_argument, NULL, 'r'},
   {"verbose", no_argument, NULL, 'v'},
+  {"warnings", no_argument, NULL, 'w'},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
   {NULL, 0, NULL, 0}
@@ -126,6 +130,78 @@ diagnose_leading_hyphen (int argc, char **argv)
     }
 }
 
+static size_t
+warnings_table_hash (void const *p, size_t n_buckets)
+{
+  struct warnings_entry const *entry = p;
+  return entry->ino % n_buckets;
+}
+
+static bool
+warnings_table_comparator (void const *p1, void const *p2)
+{
+  struct warnings_entry const *e1 = p1, *e2 = p2;
+  return e1->dev == e2->dev && e1->ino == e2->ino;
+}
+
+static void
+add_warnings_entry (Hash_table *table, struct stat const *st, char const *path,
+                    size_t path_length)
+{
+  struct warnings_entry *entry = xmalloc (sizeof *entry + path_length);
+  entry->dev = st->st_dev;
+  entry->ino = st->st_ino;
+  strcpy(entry->given_path, path);
+  if (! hash_insert (table, entry))
+    xalloc_die ();
+}
+
+static Hash_table *
+create_warnings_table (void)
+{
+  char const *home_dir = getenv ("HOME");
+  if (! home_dir)
+    return NULL;
+
+  char *path = xconcatenated_filename (home_dir, ".rmfd/warn.list", NULL);
+  FILE *fp = fopen (path, "r");
+  if (! fp)
+    {
+      free (path);
+      return NULL;
+    }
+
+  Hash_table *table = hash_initialize (41, NULL, warnings_table_hash,
+                                       warnings_table_comparator, NULL);
+  if (! table)
+    xalloc_die ();
+
+  char *line = NULL;
+  size_t length;
+  ssize_t read;
+  while (-1 != (read = getline (&line, &length, fp)))
+    {
+      if (line[read - 1] == '\n')
+        line[--read] = '\0';
+      if (line[0] != '/')
+        error (1, 0, "warn.list: %s: must be an absolute path", quote (line));
+
+      struct stat st;
+
+      if (0 == lstat (line, &st))
+        add_warnings_entry (table, &st, line, read);
+
+      if (S_ISLNK (st.st_mode) && 0 == stat (line, &st))
+        add_warnings_entry (table, &st, line, read);
+    }
+
+  free (line);
+  fclose (fp);
+  free (path);
+
+  return table;
+}
+
 void
 usage (int status)
 {
@@ -138,7 +214,8 @@ usage (int status)
       fputs (_("\
 Remove (unlink) the FILE(s).\n\
 \n\
-  -f, --force           ignore nonexistent files, never prompt\n\
+  -f, --force           ignore nonexistent files, never prompt unless\n\
+                          overridden with --warnings\n\
   -i                    prompt before every removal\n\
 "), stdout);
       fputs (_("\
@@ -158,6 +235,8 @@ Remove (unlink) the FILE(s).\n\
       --preserve-root   do not remove `/' (default)\n\
   -r, -R, --recursive   remove directories and their contents recursively\n\
   -v, --verbose         explain what is being done\n\
+  -w, --warnings        read ~/.rmfd/warn.list and issue a prompt if any\n\
+                          file in that list is going to be removed.\n\
 "), stdout);
       fputs (HELP_OPTION_DESCRIPTION, stdout);
       fputs (VERSION_OPTION_DESCRIPTION, stdout);
@@ -196,6 +275,7 @@ rm_option_init (struct rm_options *x)
   x->root_dev_ino = NULL;
   x->stdin_tty = isatty (STDIN_FILENO);
   x->verbose = false;
+  x->warnings_table = NULL;
 
   /* Since this program exits immediately after calling `rm', rm need not
      expend unnecessary effort to preserve the initial working directory.  */
@@ -223,7 +303,7 @@ main (int argc, char **argv)
   /* Try to disable the ability to unlink a directory.  */
   priv_set_remove_linkdir ();
 
-  while ((c = getopt_long (argc, argv, "dfirvIR", long_opts, NULL)) != -1)
+  while ((c = getopt_long (argc, argv, "dfirvIRw", long_opts, NULL)) != -1)
     {
       switch (c)
         {
@@ -255,6 +335,11 @@ main (int argc, char **argv)
         case 'r':
         case 'R':
           x.recursive = true;
+          break;
+
+        case 'w':
+          if (! x.warnings_table)
+            x.warnings_table = create_warnings_table ();
           break;
 
         case INTERACTIVE_OPTION:

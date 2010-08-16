@@ -19,6 +19,7 @@
 # define REMOVE_H
 
 # include "dev-ino.h"
+# include "hash.h"
 
 enum rm_interactive
 {
@@ -27,6 +28,14 @@ enum rm_interactive
   RMI_ALWAYS = 3,
   RMI_SOMETIMES,
   RMI_NEVER
+};
+
+struct warnings_entry
+{
+  dev_t dev;
+  ino_t ino;
+  /* The path given by the user in warn.list, used for prompting.  */
+  char given_path[1];
 };
 
 struct rm_options
@@ -58,6 +67,12 @@ struct rm_options
 
   /* If true, display the name of each file removed.  */
   bool verbose;
+
+  /* If not NULL, warn and prompt the user whenever any file in this table will
+     be removed.  This overrides any interactive options.  The table contains
+     warnings_entrys, so it is not the filename that is checked, it's the
+     device and inode numbers.  Symbolic links should be dereferenced.  */
+  Hash_table const *warnings_table;
 
   /* If true, treat the failure by the rm function to restore the
      current working directory as a fatal error.  I.e., if this field

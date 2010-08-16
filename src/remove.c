@@ -198,6 +198,77 @@ write_protected_non_symlink (int fd_cwd,
   }
 }
 
+enum warn_status
+{
+  WARN_OK = RM_OK,
+  WARN_USER_DECLINED = RM_USER_DECLINED,
+  WARN_ERROR = RM_ERROR,
+  WARN_NOT_FOUND = (RM_OK + RM_USER_DECLINED + RM_ERROR)
+};
+
+static struct warnings_entry const *
+warnings_table_lookup (Hash_table const *table, struct stat const *st_key)
+{
+  struct warnings_entry we;
+  we.dev = st_key->st_dev;
+  we.ino = st_key->st_ino;
+  return hash_lookup (table, &we);
+}
+
+/* Look up the file referenced by ENT->fts_accpath.  Follow symlinks
+   if the target is a directory and we are in recursive mode.  Warn
+   and propmt the user if the object given by the device and inode
+   numbers are found in the warnings table.  Return WARN_NOT_FOUND if
+   the file was not in the warnings table and so the default prompt,
+   if any, should be given.  If the user allows removal, return
+   WARN_OK.  If they decline return WARN_USER_DECLINED.  If an error
+   occurs return WARN_ERROR.  Any value except WARN_NOT_FOUND has the
+   same value as its corresponding RM_status.
+
+   Use FD_CWD and CACHED_LSTAT for cache_fstatat calls.  */
+static enum warn_status
+warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
+      struct rm_options const *x)
+{
+  if (-1 == cache_fstatat (fd_cwd, ent->fts_accpath, cached_lstat,
+                           AT_SYMLINK_NOFOLLOW))
+    return WARN_ERROR;
+
+  struct warnings_entry const *found =
+    warnings_table_lookup (x->warnings_table, cached_lstat);
+  if (found)
+    {
+      fprintf (stderr,
+               _("%s: WARNING: you are about to remove %s; continue? "),
+               program_name, quote (found->given_path));
+
+      return yesno () ? WARN_OK : WARN_USER_DECLINED;
+    }
+
+  if (! S_ISLNK (cached_lstat->st_mode) || ! x->recursive)
+    return WARN_NOT_FOUND;
+
+  struct stat st;
+  if (-1 == stat (ent->fts_accpath, &st))
+    return WARN_ERROR;
+
+  if (! S_ISDIR (st.st_mode))
+    return WARN_NOT_FOUND;
+
+  found = warnings_table_lookup (x->warnings_table, &st);
+  if (! found)
+    return WARN_NOT_FOUND;
+
+  fprintf (stderr,
+           _("%s: WARNING: you are about to recursively remove "
+             "the contents of %s "),
+           program_name, quote (found->given_path));
+  fprintf (stderr, _("through symbolic link %s; continue? "),
+           quote (ent->fts_path));
+
+  return yesno () ? WARN_OK : WARN_USER_DECLINED;
+}
+
 /* Prompt whether to remove FILENAME (ent->, if required via a combination of
    the options specified by X and/or file attributes.  If the file may
    be removed, return RM_OK.  If the user declines to remove the file,
@@ -225,6 +296,13 @@ prompt (FTS const *fts, FTSENT const *ent, bool is_dir,
   struct stat st;
   struct stat *sbuf = &st;
   cache_stat_init (sbuf);
+
+  if (x->warnings_table)
+    {
+      enum warn_status ws = warn (ent, fd_cwd, sbuf, x);
+      if (ws != WARN_NOT_FOUND)
+        return (enum RM_status) ws;
+    }
 
   int dirent_type = is_dir ? DT_DIR : DT_UNKNOWN;
   int write_protected = 0;
