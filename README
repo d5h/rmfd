@@ -1,0 +1,7 @@
+If you are reading this, you probably have the wrong branch checked out from
+git.  The master branch is meant to more-or-less mirror GNU coreutils' version
+of rm, although there are certainly major differences in the environment since
+all the other programs have been left out.  The branch where all the action is
+is rmfd.  The purpose of that branch is to be able to see the conceptual
+differences between GNU coreutils' rm and rmfd by comparing the branch rmfd to
+master.  Please check that one out instead.
