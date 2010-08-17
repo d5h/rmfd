@@ -1,0 +1,3 @@
+If you are trying to install, stop.  You have the wrong branch of the
+git repository.  First check out the `rmfd' branch, then read the
+INSTALL file.
