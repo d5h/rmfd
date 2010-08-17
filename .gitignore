@@ -1,6 +1,8 @@
 *~
 *.a
 *.o
+rmfd-*.tar.gz
+rmfd-*.tar.xz
 Makefile
 Makefile.in
 TAGS
