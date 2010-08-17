@@ -1,0 +1,105 @@
+#!/bin/sh
+# Test the -w option on symbolic links.
+
+# Copyright (C) 2010 Free Software Foundation, Inc.
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+test=warnings-symlinks
+
+if test "$VERBOSE" = yes; then
+  set -x
+  rm --version
+fi
+
+. $srcdir/test-lib.sh
+
+mkdir -p $test.home/.rmfd dir-1 || framework_failure
+touch file-1 || framework_failure
+ln -s file-1 sl-file-1 || framework_failure
+ln -s dir-1 sl-dir-1 || framework_failure
+echo y > $test.Iy || framework_failure
+echo n > $test.In || framework_failure
+rm -f out err || framework_failure
+
+export HOME="$(pwd)/$test.home"
+warnlist="$HOME/.rmfd/warn.list"
+
+# The prompt has a trailing space, and no newline, so an extra
+# 'echo .' is inserted after each rm to make it obvious what was asked.
+
+echo 'symlink to regular file in warn.list, rm symlink, answer no' > err \
+    || fail=1
+echo "$(pwd)/sl-file-1" > $warnlist || fail=1
+rm -w sl-file-1 < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+test -h sl-file-1 || fail=1
+
+echo 'symlink to regular file in warn.list, rm file, answer no' >> err \
+    || fail=1
+rm -w file-1 < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+test -f file-1 || fail=1
+
+echo 'symlink to regular file in warn.list, rm file, answer yes' >> err \
+    || fail=1
+rm -w file-1 < $test.Iy >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -f file-1 && fail=1
+
+echo 'symlink to regular file in warn.list, rm symlink, answer yes' >> err \
+    || fail=1
+rm -w sl-file-1 < $test.Iy >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -h sl-file-1 && fail=1
+
+touch file-1 || framework_failure
+ln -s file-1 sl-file-1 || framework_failure
+
+echo 'regular file in warn.list, rm symlink' >> err || fail=1
+echo "$(pwd)/file-1" > $warnlist || fail=1
+rm -w sl-file-1 < $test.In >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -h sl-file-1 && fail=1
+test -f file-1 || fail=1
+
+echo 'directory in warn.list, rm -r symlink, answer no' >> err || fail=1
+echo "$(pwd)/dir-1" > $warnlist || fail=1
+rm -rw sl-dir-1 < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+test -d dir-1 || fail=1
+test -h sl-dir-1 || fail=1
+
+cat <<EOF > expout || fail=1
+EOF
+cat <<EOF > experr || fail=1
+symlink to regular file in warn.list, rm symlink, answer no
+rm: WARNING: you are about to remove \`$(pwd)/sl-file-1'; continue? .
+symlink to regular file in warn.list, rm file, answer no
+rm: WARNING: you are about to remove \`$(pwd)/sl-file-1'; continue? .
+symlink to regular file in warn.list, rm file, answer yes
+rm: WARNING: you are about to remove \`$(pwd)/sl-file-1'; continue? .
+symlink to regular file in warn.list, rm symlink, answer yes
+rm: WARNING: you are about to remove \`$(pwd)/sl-file-1'; continue? .
+regular file in warn.list, rm symlink
+.
+directory in warn.list, rm -r symlink, answer no
+rm: WARNING: you are about to recursively remove the contents of \
+\`$(pwd)/dir-1' through symbolic link \`sl-dir-1'; continue? .
+EOF
+
+compare out expout || fail=1
+compare err experr || fail=1
+
+Exit $fail
