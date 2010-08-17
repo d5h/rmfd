@@ -4,7 +4,7 @@ die() {
     exit 1
 }
 
-# TODO: download gnulib if we don't have it.
+[ -d gnulib ] || git clone git://git.savannah.gnu.org/gnulib.git
 
 # NOTE: This includes way more than is probably necessary just to build
 # rm; much of it is included through system.h.  As I'd prefer for this not
