@@ -1,0 +1,67 @@
+#!/bin/sh
+# Test the -w option to verify pre-checking.
+
+# Copyright (C) 2010 Free Software Foundation, Inc.
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+test=warnings-check
+
+if test "$VERBOSE" = yes; then
+  set -x
+  rm --version
+fi
+
+. $srcdir/test-lib.sh
+
+mkdir -p $test.home/.rmfd || framework_failure
+touch file-1 file-2 file-3 || framework_failure
+echo y > $test.Iy || framework_failure
+echo n > $test.In || framework_failure
+rm -f out err || framework_failure
+
+export HOME="$(pwd)/$test.home"
+warnlist="$HOME/.rmfd/warn.list"
+
+# The prompt has a trailing space, and no newline, so an extra
+# 'echo .' is inserted after each rm to make it obvious what was asked.
+
+echo 'one out of three files in warn.list, answer no' > err || fail=1
+echo "$(pwd)/file-2" > $warnlist || fail=1
+rm -w file-1 file-2 file-3 < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+test -f file-1 || fail=1
+test -f file-2 || fail=1
+test -f file-3 || fail=1
+
+echo 'one out of three files in warn.list, answer yes' >> err || fail=1
+rm -w file-1 file-2 file-3 < $test.Iy >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -f file-1 && fail=1
+test -f file-2 && fail=1
+test -f file-3 && fail=1
+
+cat <<EOF > expout || fail=1
+EOF
+cat <<EOF > experr || fail=1
+one out of three files in warn.list, answer no
+rm: WARNING: you are about to remove \`$(pwd)/file-2'; continue? .
+one out of three files in warn.list, answer yes
+rm: WARNING: you are about to remove \`$(pwd)/file-2'; continue? .
+EOF
+
+compare out expout || fail=1
+compare err experr || fail=1
+
+Exit $fail

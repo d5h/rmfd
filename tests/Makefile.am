@@ -88,6 +88,7 @@ TESTS = \
   rm/unread3 \
   rm/unreadable \
   rm/v-slash \
+  rm/warnings-check \
   rm/warnings-no-symlinks
 
 include $(srcdir)/check.mk

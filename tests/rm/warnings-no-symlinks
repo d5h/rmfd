@@ -45,13 +45,13 @@ test -f file-1 || fail=1
 
 echo 'top-level file in warn.list, answer no' >> err || fail=1
 echo "$(pwd)/file-1" > $warnlist || fail=1
-rm -w file-1 < $test.In >> out 2>> err || fail=1
+rm -w file-1 < $test.In >> out 2>> err && fail=1
 echo . >> err || fail=1
 test -f file-1 || fail=1
 
 echo 'top-level file in warn.list, override -f, answer no' >> err || fail=1
 echo "$(pwd)/file-1" > $warnlist || fail=1
-rm -w file-1 < $test.In >> out 2>> err || fail=1
+rm -w file-1 < $test.In >> out 2>> err && fail=1
 echo . >> err || fail=1
 test -f file-1 || fail=1
 
@@ -79,9 +79,7 @@ rm: WARNING: you are about to remove \`$(pwd)/file-1'; continue? .
 top-level file in warn.list, answer yes
 rm: WARNING: you are about to remove \`$(pwd)/file-1'; continue? .
 file under directory in warn.list, answer no
-rm: WARNING: you are about to remove \`$(pwd)/dir-1/file1-1'; continue? \
-rm: cannot remove \`dir-1': Directory not empty
-.
+rm: WARNING: you are about to remove \`$(pwd)/dir-1/file1-1'; continue? .
 EOF
 
 compare out expout || fail=1

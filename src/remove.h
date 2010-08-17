@@ -30,10 +30,20 @@ enum rm_interactive
   RMI_NEVER
 };
 
+enum Ternary
+{
+  T_UNKNOWN = 2,
+  T_NO,
+  T_YES
+};
+
 struct warnings_entry
 {
   dev_t dev;
   ino_t ino;
+  /* Cache the response of the user so we don't prompt for the same file
+     twice.  */
+  enum Ternary response;
   /* The path given by the user in warn.list, used for prompting.  */
   char given_path[1];
 };
@@ -104,6 +114,7 @@ enum RM_status
     }								\
   while (0)
 
+extern bool check (char *const *file, struct rm_options const *x);
 extern enum RM_status rm (char *const *file, struct rm_options const *x);
 
 #endif

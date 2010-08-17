@@ -151,6 +151,7 @@ add_warnings_entry (Hash_table *table, struct stat const *st, char const *path,
   struct warnings_entry *entry = xmalloc (sizeof *entry + path_length);
   entry->dev = st->st_dev;
   entry->ino = st->st_ino;
+  entry->response = T_UNKNOWN;
   strcpy(entry->given_path, path);
   if (! hash_insert (table, entry))
     xalloc_die ();
@@ -433,6 +434,9 @@ main (int argc, char **argv)
       if (!yesno ())
         exit (EXIT_SUCCESS);
     }
+
+  if (x.warnings_table && ! check (file, &x))
+    exit (EXIT_FAILURE);
 
   enum RM_status status = rm (file, &x);
   assert (VALID_STATUS (status));

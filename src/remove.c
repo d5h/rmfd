@@ -32,12 +32,6 @@
 #include "xfts.h"
 #include "yesno.h"
 
-enum Ternary
-  {
-    T_UNKNOWN = 2,
-    T_NO,
-    T_YES
-  };
 typedef enum Ternary Ternary;
 
 /* The prompt function may be called twice for a given directory.
@@ -206,7 +200,7 @@ enum warn_status
   WARN_NOT_FOUND = (RM_OK + RM_USER_DECLINED + RM_ERROR)
 };
 
-static struct warnings_entry const *
+static struct warnings_entry *
 warnings_table_lookup (Hash_table const *table, struct stat const *st_key)
 {
   struct warnings_entry we;
@@ -234,15 +228,19 @@ warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
                            AT_SYMLINK_NOFOLLOW))
     return WARN_ERROR;
 
-  struct warnings_entry const *found =
+  struct warnings_entry *found =
     warnings_table_lookup (x->warnings_table, cached_lstat);
   if (found)
     {
-      fprintf (stderr,
-               _("%s: WARNING: you are about to remove %s; continue? "),
-               program_name, quote (found->given_path));
+      if (found->response == T_UNKNOWN)
+        {
+          fprintf (stderr,
+                   _("%s: WARNING: you are about to remove %s; continue? "),
+                   program_name, quote (found->given_path));
 
-      return yesno () ? WARN_OK : WARN_USER_DECLINED;
+          found->response = yesno () ? T_YES : T_NO;
+        }
+      return (found->response == T_YES) ? WARN_OK : WARN_USER_DECLINED;
     }
 
   if (! S_ISLNK (cached_lstat->st_mode) || ! x->recursive)
@@ -259,14 +257,19 @@ warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
   if (! found)
     return WARN_NOT_FOUND;
 
-  fprintf (stderr,
-           _("%s: WARNING: you are about to recursively remove "
-             "the contents of %s "),
-           program_name, quote (found->given_path));
-  fprintf (stderr, _("through symbolic link %s; continue? "),
-           quote (ent->fts_path));
+  if (found->response == T_UNKNOWN)
+    {
+      fprintf (stderr,
+               _("%s: WARNING: you are about to recursively remove "
+                 "the contents of %s "),
+               program_name, quote (found->given_path));
+      fprintf (stderr, _("through symbolic link %s; continue? "),
+               quote (ent->fts_path));
 
-  return yesno () ? WARN_OK : WARN_USER_DECLINED;
+      found->response = yesno () ? T_YES : T_NO;
+    }
+
+  return (found->response == T_YES) ? WARN_OK : WARN_USER_DECLINED;
 }
 
 /* Prompt whether to remove FILENAME (ent->, if required via a combination of
@@ -663,6 +666,95 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
              PACKAGE_BUGREPORT);
       abort ();
     }
+}
+
+/* Check for ENT->fts_accpath in the warnings table and prompt the user if
+   found.  Return false if the user declines to continue.  Responses are
+   cached so if we see the file again while removing we won't prompt.  */
+bool
+check_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
+{
+  switch (ent->fts_info)
+    {
+    case FTS_D:			/* preorder directory */
+      if (! x->recursive)
+        {
+          fts_skip_tree (fts, ent);
+          return true;
+        }
+
+      /* Fall through.  */
+
+    case FTS_F:			/* regular file */
+    case FTS_NS:		/* stat(2) failed */
+    case FTS_SL:		/* symbolic link */
+    case FTS_SLNONE:		/* symbolic link without target */
+    case FTS_DNR:		/* unreadable directory */
+    case FTS_NSOK:		/* e.g., dangling symlink */
+    case FTS_DEFAULT:		/* none of the above */
+      {
+        struct stat st;
+        cache_stat_init (&st);
+
+        enum warn_status status = warn (ent, fts->fts_cwd_fd, &st, x);
+        return (status == WARN_OK) | (status == WARN_NOT_FOUND);
+      }
+
+    case FTS_DC:
+    case FTS_ERR:
+      fts_skip_tree (fts, ent);
+      return true;
+
+    case FTS_DP:
+      return true;
+    }
+}
+
+/* Check for any FILEs in the warnings table that will be removed and give the
+   user a chance for early exit.  Return true if it is OK to proceed, false if
+   rm should be skipped.  */
+bool
+check (char *const *file, struct rm_options const *x)
+{
+  bool status = true;
+
+  if (*file)
+    {
+      int bit_flags = (FTS_CWDFD | FTS_NOSTAT | FTS_PHYSICAL);
+
+      if (x->one_file_system)
+        bit_flags |= FTS_XDEV;
+
+      FTS *fts = xfts_open (file, bit_flags, NULL);
+
+      while (1)
+        {
+          FTSENT *ent = fts_read (fts);
+          if (ent == NULL)
+            {
+              if (errno != 0)
+                {
+                  error (0, errno, _("fts_read failed"));
+                  status = false;
+                }
+              break;
+            }
+
+          if (! check_fts (fts, ent, x))
+            {
+              status = false;
+              break;
+            }
+        }
+
+      if (fts_close (fts) != 0)
+        {
+          error (0, errno, _("fts_close failed"));
+          status = false;
+        }
+    }
+
+  return status;
 }
 
 /* Remove FILEs, honoring options specified via X.
