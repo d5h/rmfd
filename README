@@ -1,4 +1,4 @@
-This are the rmfd files.
+These are the rmfd files.
 
 rmfd is a fork of rm from GNU Coreutils version 8.5.  It has been forked to add
 the new option --warnings (short name -w).  This option reads a list of path
