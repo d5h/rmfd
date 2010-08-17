@@ -6,4 +6,5 @@ rm_LDADD = ../lib/librmfd.a $(LIBINTL)
 
 noinst_HEADERS = \
 	remove.h \
-	system.h
+	system.h \
+	version.h
