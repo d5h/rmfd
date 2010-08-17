@@ -17,3 +17,21 @@ a symbolic link.
 
 Other than that, and without the --warnings option, rmfd behaves identically to
 rm.  It is meant to be a drop-in replacement for /bin/rm.
+
+Here is a basic example:
+
+        $ cd /tmp
+        $ echo /tmp/d/b > ~/.rmfd/warn.list
+        $ mkdir d
+        $ touch d/{a,b,c}
+        $ rm -rw d
+        rm: WARNING: you are about to remove `/tmp/d/b'; continue? n
+        $ ls d
+        a  b  c
+        $ rm -rw d
+        rm: WARNING: you are about to remove `/tmp/d/b'; continue? y
+        $ ls d
+        ls: cannot access d: No such file or directory
+
+The --warnings option overrides the --force option, so it's simple to alias
+rm to 'rm -w' and use it as you always would.
