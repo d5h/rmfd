@@ -44,6 +44,7 @@ t = $*.td
 		 mkdir $t;					\
 		 (cd $t && $(LN_S) ../../src/$* $*);		\
 		    $(PERL) -- $(srcdir)/help2man		\
+		     --no-info					\
 		     --source='$(PACKAGE_STRING)'		\
 		     --include=$(srcdir)/$*.x			\
 		     --output=$t/$@ $t/$*;			\

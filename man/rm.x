@@ -5,11 +5,21 @@
 '\" of the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.
 '\" There is NO WARRANTY, to the extent permitted by law.
 [NAME]
-rm \- remove files or directories
+rmfd \- remove files or directories
 [DESCRIPTION]
 This manual page
-documents the GNU version of
-.BR rm .
+documents
+.BR rmfd .
+.B rmfd
+is a replacement for GNU
+.B rm
+that adds a \fI\-\-warnings\fR (short name, \fI\-w\fR) option.
+Throughout the remainder of the manual we will refer to
+.B rmfd
+as
+.B rm
+, since that is usually how it is invoked.
+.P
 .B rm
 removes each specified file.  By default, it does not remove
 directories.
@@ -27,6 +37,23 @@ the \fI\-f\fR or \fI\-\-force\fR option is not given, or the
 .B rm
 prompts the user for whether to remove the file.  If the response is
 not affirmative, the file is skipped.
+.P
+If the \fI\-w\fR or \fI\-\-warnings\fR option is given,
+.B rm
+will read the contents \fI~/.rmfd/warn.list\fR, which should consist of
+one absolute file path per line.  Before removing any files,
+.B rm
+will determine if the invocation will remove any files in the list, and
+if so will warn and prompt the user for whether to continue with the
+operation.  If the user declines, the entire command is aborted.  If a
+path listed is a symbolic link, then
+.B rm
+will warn if either the link or the target of the link will be removed.
+If a directory is listed and \fI\-r\fR, \fI\-R\fR, or \fI\-\-recursive\fR
+are given,
+.B rm
+will also warn if the contents of the directory will be removed through
+a symbolic link.
 .SH OPTIONS
 [SEE ALSO]
 unlink(1), unlink(2), chattr(1), shred(1)

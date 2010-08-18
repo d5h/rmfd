@@ -593,10 +593,10 @@ Otherwise, units default to 1024 bytes (or 512 if POSIXLY_CORRECT is set).\n\
 static inline void
 emit_ancillary_info (void)
 {
-  printf (_("\nReport %s bugs to %s\n"), last_component (program_name),
+  printf (_("\nReport %s bugs at %s\n"), last_component (program_name),
           PACKAGE_BUGREPORT);
   /* FIXME 2010: use AC_PACKAGE_URL once we require autoconf-2.64 */
-  printf (_("%s home page: <http://www.gnu.org/software/%s/>\n"),
+  printf (_("%s home page: <http://github.com/d5h/%s>\n"),
           PACKAGE_NAME, PACKAGE);
   fputs (_("General help using GNU software: <http://www.gnu.org/gethelp/>\n"),
          stdout);
@@ -613,8 +613,10 @@ emit_ancillary_info (void)
                 "<http://translationproject.org/team/>\n"),
                 last_component (program_name));
     }
+#if 0
   printf (_("For complete documentation, run: "
             "info coreutils '%s invocation'\n"), last_component (program_name));
+#endif
 }
 
 #include "inttostr.h"
