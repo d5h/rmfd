@@ -16,9 +16,11 @@ gl_EARLY
 gl_INIT
 
 AC_PROG_RANLIB
+AC_PROG_LN_S
 
 AC_CONFIG_FILES([Makefile
                  lib/Makefile
+                 man/Makefile
                  src/Makefile
                  tests/Makefile])
 AC_OUTPUT
