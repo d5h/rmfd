@@ -1,0 +1,12 @@
+rmfd NEWS                                    -*- outline -*-
+
+* Noteworthy changes in release ?.? (????-??-??) [?]
+
+** Bug fixes
+
+** New features
+
+** Changes in behavior
+
+  rm won't load the warnings table with the --help option, so it's more
+  efficient but won't give you an invalid warn.list error.

@@ -289,6 +289,7 @@ main (int argc, char **argv)
   bool preserve_root = true;
   struct rm_options x;
   bool prompt_once = false;
+  bool warnings = false;
   int c;
 
   initialize_main (&argc, &argv);
@@ -339,8 +340,7 @@ main (int argc, char **argv)
           break;
 
         case 'w':
-          if (! x.warnings_table)
-            x.warnings_table = create_warnings_table ();
+          warnings = true;
           break;
 
         case INTERACTIVE_OPTION:
@@ -435,8 +435,12 @@ main (int argc, char **argv)
         exit (EXIT_SUCCESS);
     }
 
-  if (x.warnings_table && ! check (file, &x))
-    exit (EXIT_FAILURE);
+  if (warnings)
+    {
+      x.warnings_table = create_warnings_table ();
+      if (! check (file, &x))
+        exit (EXIT_FAILURE);
+    }
 
   enum RM_status status = rm (file, &x);
   assert (VALID_STATUS (status));
