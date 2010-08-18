@@ -2,5 +2,5 @@
   to catch 'cd important_directory ; rm *'.
 * Don't create the warnings table until later, so rm -w --help is just as fast
   as normal.
-* Document with man and info pages.
+* Document with info?
 * Look for optimizations; we make a lot of stat(2) and lstat(2) calls.
