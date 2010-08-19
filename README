@@ -1,22 +1,28 @@
 These are the rmfd files.
 
-rmfd is a fork of rm from GNU Coreutils version 8.5.  It has been forked to add
-the new option --warnings (short name -w).  This option reads a list of path
-names from $HOME/.rmfd/warn.list and warns the user if the rmfd invocation will
-result in the removal of any of those files.  The user is issued a prompt to
-continue, and if the user declines, nothing is removed (there is an inherent
-race condition, so once it starts removing files, it will still check the list
-and never remove a file without prompting, but at that point it can't restore
+rmfd is a fork of rm from GNU Coreutils version 8.5.  It has been
+forked to add the new option --warnings (short name -w).  This option
+reads a list of path names from $HOME/.rmfd/warn.list and warns the
+user if the rmfd invocation will result in the removal of any of those
+files.  The user is issued a prompt to continue, and if the user
+declines, nothing is removed (there is an inherent race condition, so
+once it starts removing files, it will still check the list and never
+remove a file without prompting, but at that point it can't restore
 the files that were already deleted).
 
-It attempts intelligent handling of symbolic links.  If a symbolic link is put
-in the list, rmfd will warn if either the link or the target of the link is
-going to be deleted.  If a directory is found in the list, it will furthermore
-warn if a recursive removal of the directories contents are attempted through
-a symbolic link.
+It attempts intelligent handling of symbolic links.  If a symbolic
+link is put in the list, rmfd will warn if either the link or the
+target of the link is going to be deleted.  If a directory is found in
+the list, it will furthermore warn if a recursive removal of the
+directories contents are attempted through a symbolic link.
 
-Other than that, and without the --warnings option, rmfd behaves identically to
-rm.  It is meant to be a drop-in replacement for /bin/rm.
+It attempts to catch mistakes with globs.  If a directory D is in the
+list, it will do its best to discern when `cd D ; rm *' or `rm D/*' is
+being invoked, and will warn and prompt for whether to continue.
+
+Other than that, and without the --warnings option, rmfd behaves
+identically to rm.  It is meant to be a drop-in replacement for
+/bin/rm.
 
 Here is a basic example:
 
@@ -33,5 +39,5 @@ Here is a basic example:
         $ ls d
         ls: cannot access d: No such file or directory
 
-The --warnings option overrides the --force option, so it's simple to alias
-rm to 'rm -w' and use it as you always would.
+The --warnings option overrides the --force option, so it's simple to
+alias rm to 'rm -w' and use it as you always would.
