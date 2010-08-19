@@ -95,7 +95,7 @@ rm: cannot stat \`dir-2': No such file or directory
 attempt to remove a non-existent directory with -fw
 .
 rm -w dir-1/*, dir-1 is in warn.list, answer yes
-rm: WARNING: you are about to remove 2 files via \`$(pwd)/dir-1/*'; continue? .
+rm: WARNING: you are about to remove 1 file via \`$(pwd)/dir-1/*'; continue? .
 EOF
 
 compare out expout || fail=1
