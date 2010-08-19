@@ -4,9 +4,16 @@ rmfd NEWS                                    -*- outline -*-
 
 ** Bug fixes
 
+  rm -fw now returns the correct exit status (0) if it finds a missing
+  file.
+
 ** New features
+
+  rm now checks to see if every non-dot file in any directory in the
+  warnings table is being removed and warns if so.  The idea is to
+  catch mistakes like, "cd important_dir ; rm *".
 
 ** Changes in behavior
 
-  rm won't load the warnings table with the --help option, so it's more
-  efficient but won't give you an invalid warn.list error.
+  rm won't load the warnings table with the --help option, so it's
+  more efficient but won't give you an invalid warn.list error.

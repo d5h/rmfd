@@ -1,0 +1,104 @@
+#!/bin/sh
+# Test the -w option using globs.
+
+# Copyright (C) 2010 Free Software Foundation, Inc.
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+test=warnings-glob
+
+if test "$VERBOSE" = yes; then
+  set -x
+  rm --version
+fi
+
+. $srcdir/test-lib.sh
+
+mkdir -p $test.home/.rmfd dir-1 || framework_failure
+touch dir-1/file-1 dir-1/file-2 || framework_failure
+echo y > $test.Iy || framework_failure
+echo n > $test.In || framework_failure
+rm -f out err || framework_failure
+
+export HOME="$(pwd)/$test.home"
+warnlist="$HOME/.rmfd/warn.list"
+
+# The prompt has a trailing space, and no newline, so an extra
+# 'echo .' is inserted after each rm to make it obvious what was asked.
+
+echo 'rm -w dir-1/*, dir-1 is in warn.list, answer no' > err || fail=1
+echo "$(pwd)/dir-1" > $warnlist || fail=1
+rm -w dir-1/* < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+test -f dir-1/file-1 || fail=1
+test -f dir-1/file-2 || fail=1
+
+echo 'cd dir-1; rm -w *, dir-1 is in warn.list, answer no' >> err || fail=1
+(cd dir-1 ; rm -w * < ../$test.In >> ../out 2>> ../err) && fail=1
+echo . >> err || fail=1
+test -f dir-1/file-1 || fail=1
+test -f dir-1/file-2 || fail=1
+
+echo 'add a dot file to dir-1, answer no' >> err || fail=1
+touch dir-1/.dot-1 || fail=1
+rm -w dir-1/* < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+test -f dir-1/file-1 || fail=1
+test -f dir-1/file-2 || fail=1
+test -f dir-1/.dot-1 || fail=1
+
+echo 'remove only some files from dir-1' >> err || fail=1
+rm -w dir-1/file-1 dir-1/.dot-1 < $test.In >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -f dir-1/file-1 && fail=1
+test -f dir-1/.dot=1 && fail=1
+test -f dir-1/file-2 || fail=1
+
+echo 'attempt to remove a non-existent directory without -f' >> err || fail=1
+rm -w dir-2/* < $test.In >> out 2>> err && fail=1
+echo . >> err || fail=1
+
+echo 'attempt to remove a non-existent directory with -fw' >> err || fail=1
+rm -fw dir-2/* < $test.In >> out 2>> err || fail=1
+echo . >> err || fail=1
+
+echo 'rm -w dir-1/*, dir-1 is in warn.list, answer yes' >> err || fail=1
+rm -w dir-1/* < $test.Iy >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -f dir-1/file-2 && fail=1
+
+cat <<EOF > expout || fail=1
+EOF
+cat <<EOF > experr || fail=1
+rm -w dir-1/*, dir-1 is in warn.list, answer no
+rm: WARNING: you are about to remove 2 files via \`$(pwd)/dir-1/*'; continue? .
+cd dir-1; rm -w *, dir-1 is in warn.list, answer no
+rm: WARNING: you are about to remove 2 files via \`$(pwd)/dir-1/*'; continue? .
+add a dot file to dir-1, answer no
+rm: WARNING: you are about to remove 2 files via \`$(pwd)/dir-1/*'; continue? .
+remove only some files from dir-1
+.
+attempt to remove a non-existent directory without -f
+rm: cannot stat \`dir-2': No such file or directory
+.
+attempt to remove a non-existent directory with -fw
+.
+rm -w dir-1/*, dir-1 is in warn.list, answer yes
+rm: WARNING: you are about to remove 2 files via \`$(pwd)/dir-1/*'; continue? .
+EOF
+
+compare out expout || fail=1
+compare err experr || fail=1
+
+Exit $fail

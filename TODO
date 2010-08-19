@@ -1,4 +1,3 @@
-* Check for removing every file in a directory on the warn list.  The idea is
-  to catch 'cd important_directory ; rm *'.
 * Document with info?
 * Look for optimizations; we make a lot of stat(2) and lstat(2) calls.
+* Break up check_glob into smaller functions.

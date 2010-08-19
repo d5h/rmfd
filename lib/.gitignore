@@ -259,3 +259,5 @@
 /filename.h
 /stpcpy.c
 /xconcat-filename.c
+/hash-pjw.c
+/hash-pjw.h

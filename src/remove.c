@@ -17,15 +17,18 @@
 /* Extracted from rm.c and librarified, then rewritten twice by Jim Meyering.  */
 
 #include <config.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <assert.h>
 
 #include "system.h"
+#include "concat-filename.h"
 #include "error.h"
 #include "euidaccess-stat.h"
 #include "file-type.h"
 #include "quote.h"
+#include "hash-pjw.h"
 #include "remove.h"
 #include "root-dev-ino.h"
 #include "write-any-file.h"
@@ -192,6 +195,35 @@ write_protected_non_symlink (int fd_cwd,
   }
 }
 
+/* When a function like unlink, rmdir, or fstatat fails with an errno
+   value of ERRNUM, return true if the specified file system object
+   is guaranteed not to exist;  otherwise, return false.  */
+static inline bool
+nonexistent_file_errno (int errnum)
+{
+  /* Do not include ELOOP here, since the specified file may indeed
+     exist, but be (in)accessible only via too long a symlink chain.
+     Likewise for ENAMETOOLONG, since rm -f ./././.../foo may fail
+     if the "..." part expands to a long enough sequence of "./"s,
+     even though ./foo does indeed exist.  */
+
+  switch (errnum)
+    {
+    case ENOENT:
+    case ENOTDIR:
+      return true;
+    default:
+      return false;
+    }
+}
+
+/* Encapsulate the test for whether the errno value, ERRNUM, is ignorable.  */
+static inline bool
+ignorable_missing (struct rm_options const *x, int errnum)
+{
+  return x->ignore_missing_files && nonexistent_file_errno (errnum);
+}
+
 enum warn_status
 {
   WARN_OK = RM_OK,
@@ -226,7 +258,7 @@ warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
 {
   if (-1 == cache_fstatat (fd_cwd, ent->fts_accpath, cached_lstat,
                            AT_SYMLINK_NOFOLLOW))
-    return WARN_ERROR;
+    return ignorable_missing (x, errno) ? WARN_NOT_FOUND : WARN_ERROR;
 
   struct warnings_entry *found =
     warnings_table_lookup (x->warnings_table, cached_lstat);
@@ -248,7 +280,7 @@ warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
 
   struct stat st;
   if (-1 == stat (ent->fts_accpath, &st))
-    return WARN_ERROR;
+    return ignorable_missing (x, errno) ? WARN_NOT_FOUND : WARN_ERROR;
 
   if (! S_ISDIR (st.st_mode))
     return WARN_NOT_FOUND;
@@ -446,35 +478,6 @@ is_nondir_lstat (int fd_cwd, char const *filename, struct stat *st)
      && !S_ISDIR (st->st_mode));
   errno = saved_errno;
   return is_non_dir;
-}
-
-/* When a function like unlink, rmdir, or fstatat fails with an errno
-   value of ERRNUM, return true if the specified file system object
-   is guaranteed not to exist;  otherwise, return false.  */
-static inline bool
-nonexistent_file_errno (int errnum)
-{
-  /* Do not include ELOOP here, since the specified file may indeed
-     exist, but be (in)accessible only via too long a symlink chain.
-     Likewise for ENAMETOOLONG, since rm -f ./././.../foo may fail
-     if the "..." part expands to a long enough sequence of "./"s,
-     even though ./foo does indeed exist.  */
-
-  switch (errnum)
-    {
-    case ENOENT:
-    case ENOTDIR:
-      return true;
-    default:
-      return false;
-    }
-}
-
-/* Encapsulate the test for whether the errno value, ERRNUM, is ignorable.  */
-static inline bool
-ignorable_missing (struct rm_options const *x, int errnum)
-{
-  return x->ignore_missing_files && nonexistent_file_errno (errnum);
 }
 
 /* Tell fts not to traverse into the hierarchy at ENT.  */
@@ -708,6 +711,178 @@ check_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
     case FTS_DP:
       return true;
     }
+}
+
+struct dir_prefix
+{
+  /* The directory name, not NULL-terminated.  */
+  char *dirname;
+  /* The length of the directory name.  */
+  size_t len;
+  /* A table of file names found in with this directory prefix.  */
+  Hash_table *filenames;
+};
+
+static bool
+streq (void const *p1, void const *p2)
+{
+  return 0 == strcmp (p1, p2);
+}
+
+/* Checks the list FILEs given on the command line for cases such as
+   "cd important_dir; rm *".  We don't assume the "*" is the only
+   thing on the command line, or that it's specifically "*" and not
+   "foo/*", but we do only check for "[prefix/dirs/]*" and not things
+   like "foo/* /bar" (without the space), "f*oo/bar", names that would
+   have multiple globs in them, or dot files.  This seems to cover the
+   majority of mistakes.
+
+   To do this we group arguments that could come from the same glob
+   and for each of those groups check to see if the containing
+   directory is in X->warnings_table, and every file of the directory
+   is in the arguments list.  Prompt the user if the above conditions
+   are met, and return true only if the user permits us to continue,
+   or we didn't prompt.  */
+bool
+check_globs (char *const *file, struct rm_options const *x)
+{
+  /* There tends to be very few distinct directory prefixes on the
+     command line, at least when used by a human.  Hence we use a
+     resizable array rather than a hash table for performance.  */
+  size_t n_prefixes = 0, prefixes_alloced = 16;
+  struct dir_prefix *prefixes = xmalloc (prefixes_alloced * sizeof *prefixes);
+  struct dir_prefix *pfix;
+  size_t i;
+  bool check_ok = true;
+
+  /* Store each argument basename in a table under its directory
+     prefix.  I.e., for argument "foo/bar/baz", store "baz" in the
+     table under prefix "foo/bar".  */
+  for ( ; *file; ++file)
+    {
+      size_t len = dir_len (*file);
+      for (i = 0; i < n_prefixes; ++i)
+        {
+          pfix = &prefixes[i];
+          if (len == pfix->len && 0 == strncmp (*file, pfix->dirname, len))
+            break;
+        }
+      if (i == n_prefixes)
+        {
+          if (n_prefixes == prefixes_alloced)
+            {
+              prefixes_alloced *= 2;
+              prefixes = xrealloc (prefixes,
+                                   prefixes_alloced * sizeof *prefixes);
+            }
+          pfix = &prefixes[n_prefixes++];
+          pfix->dirname = *file;
+          pfix->len = len;
+          pfix->filenames = hash_initialize (17, NULL, hash_pjw, streq, NULL);
+          if (! pfix->filenames)
+            xalloc_die ();
+        }
+      char const *filename = *file + len;
+      while (ISSLASH (*filename))
+        ++filename;
+      if (! hash_insert (pfix->filenames, filename))
+        xalloc_die ();
+    }
+
+  /* For each directory prefix in the argument list, check if it's in
+     the warnings table, and if so, read the directory and see if
+     every non-dot file in the directory is listed in the arguments.
+     This will catch a glob in that directory, sans race conditions,
+     which is better than nothing.  */
+  for (i = 0; check_ok && i < n_prefixes; ++i)
+    {
+      struct stat st;
+      char const *dirname;
+      pfix = &prefixes[i];
+      if (pfix->len == 0)
+        dirname = ".";
+      else
+        {
+          assert (ISSLASH (pfix->dirname[pfix->len]));
+          pfix->dirname[pfix->len] = '\0';
+          dirname = pfix->dirname;
+        }
+
+      if (-1 == stat (dirname, &st))
+        {
+          if (! ignorable_missing (x, errno))
+            error (EXIT_FAILURE, errno, _("cannot stat %s"), quote (dirname));
+        }
+      else
+        {
+          /* Check if the directory is in the warnings table and if so
+             check the contents.  */
+          struct warnings_entry *found =
+            warnings_table_lookup (x->warnings_table, &st);
+          if (found)
+            {
+              DIR *dir = opendir (dirname);
+              if (! dir)
+                error (EXIT_FAILURE, errno, _("cannot open directory %s"),
+                       quote (dirname));
+
+              struct dirent *dirent;
+              size_t n_files = 0;
+
+              /* readdir sets errno on failure but not on success.  */
+              errno = 0;
+              while ((dirent = readdir (dir)))
+                {
+                  if (dirent->d_name[0] == '.')
+                    continue;
+                  if (! hash_lookup (pfix->filenames, dirent->d_name))
+                    break;
+                  n_files++;
+                }
+              if (dirent == NULL)
+                {
+                  if (errno)
+                    error (EXIT_FAILURE, errno,
+                           _("error reading directory %s"), quote (dirname));
+
+                  if (n_files)
+                    {
+                      char *glob =
+                        xconcatenated_filename (found->given_path, "*", NULL);
+                      char const *s = (n_files == 1) ? "" : "s";
+                      fprintf (stderr,
+                               _("%s: WARNING: you are about to remove"
+                                 " %zd file%s via %s; continue? "),
+                               program_name, n_files, s, quote (glob));
+                      free (glob);
+                      /* If they want to remove the glob contents,
+                         don't bother them later about whether they
+                         want to remove the directory.  */
+                      found->response = yesno () ? T_YES : T_NO;
+
+                      if (found->response == T_NO)
+                        check_ok = false;
+                    }
+                } /* end if (dirent == NULL) */
+
+              if (-1 == closedir (dir))
+                error (EXIT_FAILURE, errno, _("cannot close directory %s"),
+                       quote (dirname));
+
+            } /* end if (found) */
+
+        } /* end if (-1 != stat (dirname, &st)) */
+
+      if (pfix->len)
+        pfix->dirname[pfix->len] = DIRECTORY_SEPARATOR;
+
+    } /* end for (check_ok && i < n_prefixes) */
+
+  while (0 < n_prefixes)
+    hash_free (prefixes[--n_prefixes].filenames);
+  free (prefixes);
+
+  return check_ok;
 }
 
 /* Check for any FILEs in the warnings table that will be removed and give the

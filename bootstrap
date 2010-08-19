@@ -22,6 +22,7 @@ file-type
 fts
 group-member
 hash
+hash-pjw
 inttostr
 openat
 pathmax

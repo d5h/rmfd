@@ -53,7 +53,13 @@ If a directory is listed and \fI\-r\fR, \fI\-R\fR, or \fI\-\-recursive\fR
 are given,
 .B rm
 will also warn if the contents of the directory will be removed through
-a symbolic link.
+a symbolic link.  If a directory \fID\fR is listed,
+.B rm
+will attempt to deduce when either
+.B ``rm-w D/*''
+or
+.B ``cd D; rm *''
+has been performed and will issue a warning and prompt.
 .SH OPTIONS
 [SEE ALSO]
 unlink(1), unlink(2), chattr(1), shred(1)

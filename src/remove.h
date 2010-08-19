@@ -82,7 +82,7 @@ struct rm_options
      be removed.  This overrides any interactive options.  The table contains
      warnings_entrys, so it is not the filename that is checked, it's the
      device and inode numbers.  Symbolic links should be dereferenced.  */
-  Hash_table const *warnings_table;
+  Hash_table *warnings_table;
 
   /* If true, treat the failure by the rm function to restore the
      current working directory as a fatal error.  I.e., if this field
@@ -114,6 +114,7 @@ enum RM_status
     }								\
   while (0)
 
+extern bool check_globs (char *const *file, struct rm_options const *x);
 extern bool check (char *const *file, struct rm_options const *x);
 extern enum RM_status rm (char *const *file, struct rm_options const *x);
 

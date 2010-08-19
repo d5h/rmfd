@@ -438,7 +438,7 @@ main (int argc, char **argv)
   if (warnings)
     {
       x.warnings_table = create_warnings_table ();
-      if (! check (file, &x))
+      if (! check_globs (file, &x) || ! check (file, &x))
         exit (EXIT_FAILURE);
     }
 
