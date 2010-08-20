@@ -1,5 +1,11 @@
 rmfd NEWS                                    -*- outline -*-
 
+* Noteworthy changes in release 0.7 (2010-08-19) [beta]
+
+** Bug fixes
+
+  rm -w doesn't crash if warn.list is missing.
+
 * Noteworthy changes in release 0.6 (2010-08-19) [beta]
 
 ** Bug fixes

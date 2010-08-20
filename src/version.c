@@ -1,2 +1,2 @@
 #include <config.h>
-char const *Version = "0.6";
+char const *Version = "0.7";
