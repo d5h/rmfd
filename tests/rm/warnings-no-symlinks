@@ -26,7 +26,7 @@ fi
 . $srcdir/test-lib.sh
 
 mkdir -p $test.home/.rmfd dir-1 || framework_failure
-touch file-1 dir-1/file1-1 || framework_failure
+touch file-1 file-2 dir-1/file1-1 || framework_failure
 echo y > $test.Iy || framework_failure
 echo n > $test.In || framework_failure
 rm -f out err || framework_failure
@@ -66,6 +66,18 @@ rm -rw dir-1 < $test.In >> out 2>> err && fail=1
 echo . >> err || fail=1
 test -f dir-1/file1-1 || fail=1
 
+echo 'file under directory in warn.list, answer yes' >> err || fail=1
+rm -rw dir-1 < $test.Iy >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -f dir-1/file1-1 && fail=1
+test -d dir-1 && fail=1
+
+echo 'no warn.list file' >> err || fail=1
+rm $warnlist || fail=1
+rm -w file-2 >> out 2>> err || fail=1
+echo . >> err || fail=1
+test -f dir-2 && fail=1
+
 cat <<EOF > expout || fail=1
 EOF
 cat <<EOF > experr || fail=1
@@ -80,6 +92,10 @@ top-level file in warn.list, answer yes
 rm: WARNING: you are about to remove \`$(pwd)/file-1'; continue? .
 file under directory in warn.list, answer no
 rm: WARNING: you are about to remove \`$(pwd)/dir-1/file1-1'; continue? .
+file under directory in warn.list, answer yes
+rm: WARNING: you are about to remove \`$(pwd)/dir-1/file1-1'; continue? .
+no warn.list file
+.
 EOF
 
 compare out expout || fail=1

@@ -157,6 +157,9 @@ add_warnings_entry (Hash_table *table, struct stat const *st, char const *path,
     xalloc_die ();
 }
 
+/* Create a hash table of device and inode number pairs by reading the
+   file list ~/.rmfd/warn.list.  If we can't read that file return
+   NULL.  */
 static Hash_table *
 create_warnings_table (void)
 {
@@ -438,8 +441,11 @@ main (int argc, char **argv)
   if (warnings)
     {
       x.warnings_table = create_warnings_table ();
-      if (! check_globs (file, &x) || ! check (file, &x))
-        exit (EXIT_FAILURE);
+      if (x.warnings_table)
+        {
+          if (! check_globs (file, &x) || ! check (file, &x))
+            exit (EXIT_FAILURE);
+        }
     }
 
   enum RM_status status = rm (file, &x);

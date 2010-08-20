@@ -24,7 +24,7 @@ Other than that, and without the --warnings option, rmfd behaves
 identically to rm.  It is meant to be a drop-in replacement for
 /bin/rm.
 
-Here is a basic example:
+Here are some examples:
 
         $ cd /tmp
         $ echo /tmp/d/b > ~/.rmfd/warn.list
@@ -34,8 +34,19 @@ Here is a basic example:
         rm: WARNING: you are about to remove `/tmp/d/b'; continue? n
         $ ls d
         a  b  c
-        $ rm -rw d
-        rm: WARNING: you are about to remove `/tmp/d/b'; continue? y
+        $ echo /tmp/d > ~/.rmfd/warn.list
+        $ cd d
+        $ rm *
+        rm: WARNING: you are about to remove 3 files via `/tmp/d/*'; continue? n
+        $ cd ..
+        $ rm d/*
+        rm: WARNING: you are about to remove 3 files via `/tmp/d/*'; continue? n
+        $ ln -s d e
+        $ rm -rw e
+        rm: WARNING: you are about to recursively remove the contents of `/tmp/d' through symbolic link `e'; continue? n
+        $ rm e
+        $ echo y | rm -rw d
+        rm: WARNING: you are about to remove `/tmp/d'; continue?
         $ ls d
         ls: cannot access d: No such file or directory
 
