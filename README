@@ -20,6 +20,9 @@ It attempts to catch mistakes with globs.  If a directory D is in the
 list, it will do its best to discern when `cd D ; rm *' or `rm D/*' is
 being invoked, and will warn and prompt for whether to continue.
 
+When stderr is attached to a terminal it uses color (bright red) for
+warnings to be sure they are not mistaken for normal output.
+
 Other than that, and without the --warnings option, rmfd behaves
 identically to rm.  It is meant to be a drop-in replacement for
 /bin/rm.

@@ -18,8 +18,10 @@
 
 #include <config.h>
 #include <dirent.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <assert.h>
 
 #include "system.h"
@@ -241,6 +243,26 @@ warnings_table_lookup (Hash_table const *table, struct stat const *st_key)
   return hash_lookup (table, &we);
 }
 
+static void
+issue_warning (char const *format, ...)
+{
+  static Ternary use_colors = T_UNKNOWN;
+
+  va_list args;
+
+  if (use_colors == T_UNKNOWN)
+    use_colors = isatty (STDERR_FILENO) ? T_YES : T_NO;
+
+  if (use_colors == T_YES)
+    fprintf (stderr, _("%s: \033[01;31mWARNING:\033[0m "), program_name);
+  else
+    fprintf (stderr, _("%s: WARNING: "), program_name);
+
+  va_start (args, format);
+  vfprintf (stderr, format, args);
+  va_end (args);
+}
+
 /* Look up the file referenced by ENT->fts_accpath.  Follow symlinks
    if the target is a directory and we are in recursive mode.  Warn
    and propmt the user if the object given by the device and inode
@@ -266,9 +288,8 @@ warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
     {
       if (found->response == T_UNKNOWN)
         {
-          fprintf (stderr,
-                   _("%s: WARNING: you are about to remove %s; continue? "),
-                   program_name, quote (found->given_path));
+          issue_warning(_("you are about to remove %s; continue? "),
+                        quote (found->given_path));
 
           found->response = yesno () ? T_YES : T_NO;
         }
@@ -291,10 +312,9 @@ warn (FTSENT const *ent, int fd_cwd, struct stat *cached_lstat,
 
   if (found->response == T_UNKNOWN)
     {
-      fprintf (stderr,
-               _("%s: WARNING: you are about to recursively remove "
-                 "the contents of %s "),
-               program_name, quote (found->given_path));
+      issue_warning(_("you are about to recursively remove"
+                      " the contents of %s "),
+                    quote (found->given_path));
       fprintf (stderr, _("through symbolic link %s; continue? "),
                quote (ent->fts_path));
 
@@ -850,10 +870,9 @@ check_globs (char *const *file, struct rm_options const *x)
                       char *glob =
                         xconcatenated_filename (found->given_path, "*", NULL);
                       char const *s = (n_files == 1) ? "" : "s";
-                      fprintf (stderr,
-                               _("%s: WARNING: you are about to remove"
-                                 " %zd file%s via %s; continue? "),
-                               program_name, n_files, s, quote (glob));
+                      issue_warning(_("you are about to remove"
+                                      " %zd file%s via %s; continue? "),
+                                    n_files, s, quote (glob));
                       free (glob);
                       /* If they want to remove the glob contents,
                          don't bother them later about whether they

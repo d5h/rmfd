@@ -1,5 +1,16 @@
 rmfd NEWS                                    -*- outline -*-
 
+* Noteworthy changes in release ?.? (????-??-??) [?]
+
+** Bug fixes
+
+** New features
+
+  rm now prints "WARNING:" in bright red when stderr is attached to a
+  terminal.
+
+** Changes in behavior
+
 * Noteworthy changes in release 0.7 (2010-08-19) [beta]
 
 ** Bug fixes
