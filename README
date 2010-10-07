@@ -39,15 +39,15 @@ Here are some examples:
         a  b  c
         $ echo /tmp/d > ~/.rmfd/warn.list
         $ cd d
-        $ rm *
+        $ rm -w *
         rm: WARNING: you are about to remove 3 files via `/tmp/d/*'; continue? n
         $ cd ..
-        $ rm d/*
+        $ rm -w d/*
         rm: WARNING: you are about to remove 3 files via `/tmp/d/*'; continue? n
         $ ln -s d e
         $ rm -rw e
         rm: WARNING: you are about to recursively remove the contents of `/tmp/d' through symbolic link `e'; continue? n
-        $ rm e
+        $ rm -w e
         $ rm -rw d
         rm: WARNING: you are about to remove `/tmp/d'; continue? y
         $ ls d e
